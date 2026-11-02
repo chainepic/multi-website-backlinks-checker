@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多网站互链检查器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f4f6;
+    --ink: #111111;
+    --muted: #5c6168;
+    --line: #e6e6e6;
+    --card: #ffffff;
+    --card-2: #f3f4f6;
+    --mutual: #087443;
+    --mutual-ink: #ffffff;
+    --one: #f97316;
+    --one-ink: #1a1008;
+    --bad: #c4242a;
+    --bad-bg: #ffedea;
+    --unknown: #1d4ed8;
+    --unknown-ink: #ffffff;
+    --shadow: none;
+    --sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    color: var(--ink);
+    background: var(--bg);
+    font: 14px/1.45 var(--sans);
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  a { color: #1d4ed8; }
+  .num { font-variant-numeric: tabular-nums; }
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 24px 4px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 36px;
+    height: 36px;
+    display: block;
+    flex: none;
+  }
+  .brand h1 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+  .brand p { margin: 3px 0 0; color: var(--muted); font-size: 14px; }
+  .actions { display: flex; gap: 8px; }
+  .btn {
+    height: 34px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: #fff;
+    border-radius: 6px;
+    padding: 0 14px;
+  }
+  .btn.ghost { background: #fff; color: var(--ink); }
+  .btn:disabled { opacity: 0.45; cursor: progress; }
+  .btn:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .brand .by { margin: 1px 0 0; font-size: 13px; }
+  .brand .by a { color: var(--muted); text-decoration: none; }
+  .brand .by a:hover { color: var(--ink); }
+  main { padding: 12px 24px 40px; min-width: 0; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 16px 0;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .stat {
+    background: transparent;
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-radius: 0;
+    padding: 14px 16px 12px;
+  }
+  .stat:last-child { border-right: 0; }
+  .stat b { display: block; font-size: 28px; font-weight: 560; letter-spacing: -0.03em; line-height: 1; }
+  .stat.one b { color: #c2410c; }
+  .stat.mutual b { color: #087443; }
+  .stat span { display: block; margin-top: 6px; color: var(--ink); font-size: 14px; }
+  .stat small { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+  .alert {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: -4px 0 14px;
+    color: #9f1239;
+    font-size: 13px;
+  }
+  .alert span { background: transparent; padding: 0; border-radius: 0; }
+  .alert span + span::before { content: " · "; color: #9f1239; }
+  .progress, .board, .feed {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .progress { margin-bottom: 14px; padding: 14px 16px; }
+  .progress h2, .feed h2 { margin: 0 0 10px; font-size: 15px; }
+  .site-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill {
+    border-radius: 4px;
+    padding: 3px 8px;
+    background: var(--card-2);
+    color: var(--ink);
+    font-size: 12px;
+  }
+  .pill.run { background: #ffedd5; color: #9a3412; }
+  .pill.ok { background: #dcfce7; color: #14532d; }
+  .pill.bad { background: var(--bad-bg); color: #9f1239; }
+  .board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    min-height: 560px;
+  }
+  .board-main { min-width: 0; padding: 14px 14px 16px; }
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    color: var(--ink);
+    font-size: 13px;
+  }
+  .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+  .aim {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--card-2);
+    color: var(--muted);
+  }
+  .aim.live { background: var(--ink); color: #fff; }
+  .aim .axis { font-size: 12px; color: var(--muted); }
+  .aim.live .axis { color: #c4c4c4; }
+  .aim b { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .aim .arrow { font-size: 16px; }
+  .aim-kind {
+    margin-left: auto;
+    min-height: 24px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .aim.live .aim-kind:empty { display: none; }
+  .aim.live .aim-kind.mutual { background: var(--mutual); color: var(--mutual-ink); }
+  .aim.live .aim-kind.oneway { background: var(--one); color: var(--one-ink); }
+  .aim.live .aim-kind.unknown { background: var(--unknown); color: var(--unknown-ink); }
+  .aim.live .aim-kind.unchecked {
+    background: repeating-linear-gradient(-45deg, #fff, #fff 3px, #bdbdbd 3px, #bdbdbd 6px);
+    color: var(--ink);
+  }
+  .aim.live .aim-kind.none { background: #fff; color: var(--ink); }
+  .aim.live .aim-kind.self { background: #d4d4d4; color: var(--ink); }
+  input[type="search"] {
+    width: min(220px, 100%);
+    height: 34px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    border-radius: 6px;
+    padding: 0 12px;
+    flex: none;
+  }
+  .matrix-scroll {
+    min-width: 0;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    max-height: calc(100vh - 210px);
+  }
+  table { border-collapse: separate; border-spacing: 0; }
+  th, td { padding: 0; }
+  .sticky {
+    position: sticky;
+    background: #fff;
+    z-index: 3;
+  }
+  .ghead { top: 0; height: 28px; z-index: 4; font-size: 12px; font-weight: 600; color: var(--ink); background: #f3f4f6; }
+  .g-cs2, .g-ai, .g-game, .g-other { background: #f3f4f6; color: var(--ink); }
+  .colhead { top: 28px; height: 148px; vertical-align: bottom; z-index: 4; background: #fff; }
+  .colhead span {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    padding: 8px 0 6px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--ink);
+  }
+  .corner { left: 0; z-index: 6; min-width: 168px; font-size: 12px; color: var(--muted); background: #fff; }
+  .corner.ghead { background: #f3f4f6; }
+  .corner.colhead { vertical-align: bottom; padding: 0 0 10px 12px; text-align: left; background: #fff; }
+  .rowhead {
+    left: 0;
+    text-align: left;
+    min-width: 168px;
+    border-right: 1px solid var(--line);
+    background: #fff;
+    position: sticky;
+    z-index: 2;
+  }
+  .rowhead .inner { padding: 4px 10px 4px 12px; }
+  .name { display: block; font-size: 13px; font-weight: 600; }
+  .meta { display: block; color: var(--muted); font-size: 12px; }
+  tr.hot .rowhead { background: var(--ink); color: #fff; }
+  tr.hot .rowhead .name { color: #fff; }
+  tr.hot .rowhead .meta { color: #d4d4d4; }
+  th.colhead.hot { background: var(--ink); }
+  th.colhead.hot span { color: #fff; }
+  th.colhead.match span { box-shadow: inset -3px 0 0 var(--ink); }
+  .rowhead.match .name { box-shadow: inset 0 -2px 0 var(--ink); }
+  .cell button,
+  .mark {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 4px;
+    background: #f4f5f6;
+    color: transparent;
+    padding: 0;
+    position: relative;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    display: inline-grid;
+    place-items: center;
+    box-shadow: inset 0 0 0 1px #e7e7e7;
+  }
+  .cell button { margin: 1px; }
+  .mark { vertical-align: middle; font-style: normal; }
+  .cell.mutual button,
+  .mark.mutual { background: var(--mutual); color: var(--mutual-ink); box-shadow: none; }
+  .cell.oneway button,
+  .mark.oneway { background: var(--one); color: var(--one-ink); box-shadow: none; }
+  .cell.unknown button,
+  .mark.unknown { background: var(--unknown); color: var(--unknown-ink); box-shadow: none; }
+  .cell.unchecked button,
+  .mark.unchecked {
+    background: repeating-linear-gradient(-45deg, #fff, #fff 3px, #b5b5b5 3px, #b5b5b5 6px);
+    color: var(--ink);
+    box-shadow: inset 0 0 0 1px #b5b5b5;
+  }
+  .cell.none button,
+  .mark.none { background: #f7f7f8; color: transparent; }
+  .cell.self button,
+  .mark.self { background: #d4d4d4; color: transparent; box-shadow: none; cursor: default; }
+  .cell.self button:disabled { opacity: 1; }
+  tr.hot td.hot button { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .mark.sample { background: #f4f5f6; color: var(--ink); }
+  .cell.on button,
+  .cell button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .cell.dim { opacity: 0.22; }
+  .rowhead.dim { opacity: 0.4; }
+  .cell.nofollow button::after,
+  .mark.nofollow::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    height: 4px;
+    border-radius: 1px;
+    background: var(--bad);
+  }
+  .detail {
+    border-left: 1px solid var(--line);
+    padding: 18px 16px 20px;
+    background: #fff;
+    overflow: auto;
+    max-height: calc(100vh - 150px);
+  }
+  .detail h2 { margin: 8px 0 6px; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; word-break: break-all; }
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--card-2);
+    color: var(--ink);
+  }
+  .kicker.mutual { background: var(--mutual); color: var(--mutual-ink); }
+  .kicker.oneway { background: var(--one); color: var(--one-ink); }
+  .kicker.unknown { background: var(--unknown); color: var(--unknown-ink); }
+  .kicker.unchecked {
+    background: repeating-linear-gradient(-45deg, #fff, #fff 3px, #b5b5b5 3px, #b5b5b5 6px);
+    color: var(--ink);
+    box-shadow: inset 0 0 0 1px #b5b5b5;
+  }
+  .kicker.none, .kicker.self { background: var(--card-2); color: var(--ink); }
+  .detail p { margin: 8px 0; }
+  .detail h3 { margin: 16px 0 4px; font-size: 13px; }
+  .example {
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 6px;
+    background: var(--card-2);
+  }
+  .example a, .example .url { display: block; font-size: 12px; word-break: break-all; }
+  .flags { margin-left: 6px; color: #c2410c; font-size: 12px; }
+  .note, .empty { color: var(--muted); font-size: 13px; }
+  .feed { margin-top: 14px; padding: 8px 8px 4px; }
+  .tabs { display: flex; gap: 6px; padding: 6px 6px 0; }
+  .tabs { border-bottom: 1px solid var(--line); }
+  .tabs button {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 0;
+    padding: 10px 12px;
+  }
+  .tabs button.active { color: var(--ink); box-shadow: inset 0 -2px 0 var(--ink); }
+  .link-row {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    border-top: 1px solid var(--line);
+    background: transparent;
+    padding: 11px 12px;
+    border-radius: 0;
+  }
+  .link-row.on { background: var(--card-2); }
+  .line { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .hosts { font-size: 14px; }
+  .kind { font-size: 12px; font-weight: 600; margin-right: 8px; }
+  .kind.mutual { color: #087443; }
+  .kind.oneway { color: #c2410c; }
+  .kind.unknown { color: #1d4ed8; }
+  .subline { margin-top: 3px; color: var(--muted); font-size: 12px; }
+  .pages { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  @media (max-width: 1100px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .board { grid-template-columns: minmax(0, 1fr); }
+    .detail { border-left: 0; border-top: 1px solid var(--line); max-height: none; }
+    .matrix-scroll { max-height: 70vh; }
+  }
+  @media (max-width: 720px) {
+    .top, main { padding-left: 16px; padding-right: 16px; }
+    .top { display: grid; grid-template-columns: 1fr; align-items: start; gap: 12px; }
+    .actions { justify-content: flex-start; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat:nth-child(2) { border-right: 0; }
+    .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+    .toolbar { display: block; }
+    input[type="search"] { width: 100%; margin-top: 8px; }
+    .aim b { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="1" y="1" width="14" height="14" rx="2" fill="#087443"/>
+      <rect x="17" y="1" width="14" height="14" rx="2" fill="#f97316"/>
+      <rect x="1" y="17" width="14" height="14" rx="2" fill="#1d4ed8"/>
+      <rect x="17" y="17" width="14" height="14" rx="2" fill="#f4f5f6" stroke="#d4d4d4"/>
+    </svg>
+    <div>
+      <h1>多网站互链检查器</h1>
+      <p>Multi-website backlinks checker</p>
+      <p class="by"><a href="https://ro.cafe" target="_blank" rel="noreferrer">Roland · ro.cafe</a></p>
+    </div>
+  </div>
+  <div class="actions">
+    <button id="scan" class="btn" type="button">重新检查</button>
+    <button id="copy" class="btn ghost" type="button">复制单向清单</button>
+  </div>
+</header>
+<main>
+  <section id="stats" class="stats"></section>
+  <div id="alert" class="alert" hidden></div>
+  <section id="progress" class="progress" hidden></section>
+  <section class="board">
+    <div class="board-main">
+      <div class="toolbar">
+        <div class="legend">
+          <span class="legend-item"><i class="mark mutual" aria-hidden="true">↔</i>互链</span>
+          <span class="legend-item"><i class="mark oneway" aria-hidden="true">→</i>单向</span>
+          <span class="legend-item"><i class="mark unknown" aria-hidden="true">!</i>对方打不开</span>
+          <span class="legend-item"><i class="mark unchecked" aria-hidden="true">—</i>出链未知</span>
+          <span class="legend-item"><i class="mark none" aria-hidden="true"></i>没有链接</span>
+          <span class="legend-item"><i class="mark sample nofollow" aria-hidden="true">→</i>全是 nofollow</span>
+        </div>
+        <input id="q" type="search" placeholder="高亮域名" aria-label="高亮域名">
+      </div>
+      <div id="aim" class="aim" aria-live="polite">
+        <span class="axis">来源</span>
+        <b id="aim-from">—</b>
+        <span class="arrow" aria-hidden="true">→</span>
+        <span class="axis">目标</span>
+        <b id="aim-to">—</b>
+        <span id="aim-kind" class="aim-kind"></span>
+      </div>
+      <div id="matrix" class="matrix-scroll"></div>
+    </div>
+    <aside id="detail" class="detail">
+      <span class="kicker">链接证据</span>
+      <h2>来源 → 目标</h2>
+      <p class="empty">点一格，看锚文本和页面。</p>
+    </aside>
+  </section>
+  <section class="feed">
+    <div class="tabs">
+      <button type="button" class="active" data-tab="oneway">单向</button>
+      <button type="button" data-tab="mutual">互链</button>
+      <button type="button" data-tab="all">全部链接</button>
+    </div>
+    <div id="list"></div>
+  </section>
+</main>
+<script>
+const state = { report: null, tab: "oneway", selected: null, query: "" };
+const scanBtn = document.querySelector("#scan");
+const copyBtn = document.querySelector("#copy");
+const q = document.querySelector("#q");
+
+q.addEventListener("input", () => {
+  state.query = q.value.trim().toLowerCase();
+  renderMatrix();
+  paintSelection();
+});
+copyBtn.addEventListener("click", copyGaps);
+scanBtn.addEventListener("click", startScan);
+document.querySelectorAll(".tabs button").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.tab = button.dataset.tab;
+    document.querySelectorAll(".tabs button").forEach((item) => item.classList.toggle("active", item === button));
+    renderList();
+    paintSelection();
+  });
+});
+
+function edgeKey(from, to) { return from + "\n" + to; }
+
+function indexReport(report) {
+  const sites = new Map(report.sites.map((site) => [site.host, site]));
+  const edges = new Map(report.edges.map((edge) => [edgeKey(edge.from, edge.to), edge]));
+  const order = report.groups.flatMap((group) => group.hosts);
+  return { sites, edges, order };
+}
+
+function classify(fromHost, toHost, idx) {
+  const from = idx.sites.get(fromHost);
+  const to = idx.sites.get(toHost);
+  const edge = idx.edges.get(edgeKey(fromHost, toHost));
+  const back = idx.edges.get(edgeKey(toHost, fromHost));
+  if (fromHost === toHost) return { kind: "self" };
+  if (!from || !from.ok) return { kind: "unchecked", edge, back };
+  if (!edge) return { kind: "none", back };
+  if (!to || !to.ok) return { kind: "unknown", edge, back };
+  if (back) return { kind: "mutual", edge, back };
+  return { kind: "oneway", edge, back };
+}
+
+function counts(host, idx) {
+  let out = 0;
+  let inn = 0;
+  for (const edge of idx.edges.values()) {
+    if (edge.from === host) out += 1;
+    if (edge.to === host) inn += 1;
+  }
+  return { out, inn };
+}
+
+function mutualPairs(idx) {
+  const seen = new Set();
+  let n = 0;
+  for (const edge of idx.edges.values()) {
+    const back = idx.edges.get(edgeKey(edge.to, edge.from));
+    if (!back) continue;
+    const from = idx.sites.get(edge.from);
+    const to = idx.sites.get(edge.to);
+    if (!from || !to || !from.ok || !to.ok) continue;
+    const key = [edge.from, edge.to].sort().join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    n += 1;
+  }
+  return n;
+}
+
+function oneWayEdges(idx) {
+  return [...idx.edges.values()].filter((edge) => {
+    const back = idx.edges.get(edgeKey(edge.to, edge.from));
+    const to = idx.sites.get(edge.to);
+    return to && to.ok && !back;
+  });
+}
+
+function render() {
+  const matrix = document.querySelector("#matrix");
+  const list = document.querySelector("#list");
+  if (!state.report) {
+    document.querySelector("#stats").replaceChildren();
+    document.querySelector("#alert").hidden = true;
+    matrix.replaceChildren();
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.style.padding = "28px";
+    empty.textContent = "还没有结果。点「重新检查」开始。";
+    matrix.appendChild(empty);
+    list.replaceChildren();
+    return;
+  }
+  renderStats();
+  renderAlert();
+  renderMatrix();
+  renderList();
+  if (state.selected) showDetail(state.selected.from, state.selected.to);
+  paintSelection();
+}
+
+function renderStats() {
+  const idx = indexReport(state.report);
+  const down = state.report.sites.filter((site) => !site.ok).length;
+  const when = new Date(state.report.generated_at).toLocaleString("zh-CN", { hour12: false });
+  const cards = [
+    ["up", state.report.sites.length - down + "/" + state.report.sites.length, "站点能打开", when + " · " + state.report.duration_sec + " 秒"],
+    ["mutual", String(mutualPairs(idx)), "互链对", "两边都有链接"],
+    ["one", String(oneWayEdges(idx).length), "单向链接", "对方没有链回来"],
+    ["down", String(state.report.edges.length), "有向链接", down ? down + " 个站打不开" : "页面里的 a 标签"],
+  ];
+  const root = document.querySelector("#stats");
+  root.replaceChildren();
+  cards.forEach(([tone, value, label, note]) => {
+    const card = document.createElement("article");
+    card.className = "stat " + (tone === "mutual" ? "mutual" : tone === "one" ? "one" : tone === "down" && down ? "down" : "");
+    const b = document.createElement("b");
+    b.className = "num";
+    b.textContent = value;
+    const span = document.createElement("span");
+    span.textContent = label;
+    const small = document.createElement("small");
+    small.textContent = note;
+    card.append(b, span, small);
+    root.appendChild(card);
+  });
+}
+
+function renderAlert() {
+  const box = document.querySelector("#alert");
+  const down = state.report.sites.filter((site) => !site.ok);
+  box.replaceChildren();
+  if (!down.length) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  down.forEach((site) => {
+    const span = document.createElement("span");
+    span.textContent = site.host + " · " + (site.error || "打不开");
+    box.appendChild(span);
+  });
+}
+
+function renderMatrix() {
+  const report = state.report;
+  const idx = indexReport(report);
+  const table = document.createElement("table");
+  const groupOf = new Map();
+  report.groups.forEach((group) => group.hosts.forEach((host) => groupOf.set(host, group.id)));
+
+  const groupRow = document.createElement("tr");
+  const groupCorner = document.createElement("th");
+  groupCorner.className = "sticky corner ghead";
+  groupCorner.textContent = "目标";
+  groupRow.appendChild(groupCorner);
+  let index = 0;
+  report.groups.forEach((group) => {
+    const th = document.createElement("th");
+    th.className = "sticky ghead g-" + group.id;
+    th.colSpan = group.hosts.length;
+    th.textContent = group.label;
+    groupRow.appendChild(th);
+    index += group.hosts.length;
+  });
+
+  const head = document.createElement("tr");
+  const corner = document.createElement("th");
+  corner.className = "sticky corner colhead";
+  corner.textContent = "来源";
+  head.appendChild(corner);
+  idx.order.forEach((host, col) => {
+    const th = document.createElement("th");
+    th.className = "sticky colhead";
+    th.dataset.col = String(col + 1);
+    const span = document.createElement("span");
+    span.textContent = host;
+    th.appendChild(span);
+    if (state.query && host.includes(state.query)) th.classList.add("match");
+    head.appendChild(th);
+  });
+  table.append(groupRow, head);
+
+  let lastGroup = "";
+  idx.order.forEach((from) => {
+    const tr = document.createElement("tr");
+    const group = groupOf.get(from);
+    if (group !== lastGroup) lastGroup = group;
+    const site = idx.sites.get(from);
+    const row = document.createElement("th");
+    row.className = "rowhead group-" + group;
+    const count = counts(from, idx);
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = from;
+    const meta = document.createElement("span");
+    meta.className = "meta";
+    meta.textContent = site && site.ok ? count.out + " 出 · " + count.inn + " 入" : ((site && site.error) || "打不开");
+    const inner = document.createElement("div");
+    inner.className = "inner";
+    inner.append(name, meta);
+    row.appendChild(inner);
+    if (state.query && !from.includes(state.query)) row.classList.add("dim");
+    else if (state.query && from.includes(state.query)) row.classList.add("match");
+    tr.appendChild(row);
+
+    idx.order.forEach((to, col) => {
+      const info = classify(from, to, idx);
+      const td = document.createElement("td");
+      td.className = "cell " + info.kind;
+      td.dataset.from = from;
+      td.dataset.to = to;
+      td.dataset.kind = info.kind;
+      td.dataset.col = String(col + 1);
+      if (info.edge && info.edge.dofollow === 0 && info.kind !== "self" && info.kind !== "unchecked") td.classList.add("nofollow");
+      if (state.query && !from.includes(state.query) && !to.includes(state.query)) td.classList.add("dim");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = mark(info);
+      button.disabled = info.kind === "self";
+      button.setAttribute("aria-label", from + " → " + to + "，" + kindLabel(info.kind));
+      button.addEventListener("mouseenter", () => highlight(table, tr, col + 1));
+      button.addEventListener("click", () => selectPair(from, to));
+      td.appendChild(button);
+      tr.appendChild(td);
+    });
+    table.appendChild(tr);
+  });
+  table.addEventListener("mouseleave", () => {
+    table.querySelectorAll(".hot").forEach((node) => node.classList.remove("hot"));
+    aimFromSelection();
+  });
+  document.querySelector("#matrix").replaceChildren(table);
+  aimFromSelection();
+}
+
+function highlight(table, tr, col) {
+  table.querySelectorAll(".hot").forEach((node) => node.classList.remove("hot"));
+  tr.classList.add("hot");
+  table.querySelectorAll('[data-col="' + col + '"]').forEach((node) => node.classList.add("hot"));
+  const cell = tr.querySelector('td[data-col="' + col + '"]');
+  if (cell) setAim(cell.dataset.from, cell.dataset.to, cell.dataset.kind);
+}
+
+function setAim(from, to, kind) {
+  const box = document.querySelector("#aim");
+  const fromEl = document.querySelector("#aim-from");
+  const toEl = document.querySelector("#aim-to");
+  const kindEl = document.querySelector("#aim-kind");
+  if (!from || !to) {
+    box.classList.remove("live");
+    fromEl.textContent = "—";
+    toEl.textContent = "—";
+    kindEl.textContent = "";
+    kindEl.className = "aim-kind";
+    return;
+  }
+  box.classList.add("live");
+  fromEl.textContent = from;
+  toEl.textContent = to;
+  kindEl.textContent = kindLabel(kind);
+  kindEl.className = "aim-kind " + (kind || "");
+}
+
+function aimFromSelection() {
+  if (!state.selected) {
+    setAim();
+    return;
+  }
+  const { from, to } = state.selected;
+  const cell = document.querySelector('.cell[data-from="' + CSS.escape(from) + '"][data-to="' + CSS.escape(to) + '"]');
+  setAim(from, to, cell ? cell.dataset.kind : "");
+}
+
+function mark(info) {
+  if (info.kind === "mutual" || info.kind === "oneway") return info.kind === "mutual" ? "↔" : "→";
+  if (info.kind === "unknown") return "!";
+  if (info.kind === "unchecked") return "—";
+  return "";
+}
+
+function selectPair(from, to) {
+  state.selected = { from, to };
+  showDetail(from, to);
+  paintSelection();
+  aimFromSelection();
+  if (window.matchMedia("(max-width: 1080px)").matches) {
+    document.querySelector("#detail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+function paintSelection() {
+  document.querySelectorAll(".cell.on, .link-row.on").forEach((node) => node.classList.remove("on"));
+  if (!state.selected) return;
+  const { from, to } = state.selected;
+  document.querySelectorAll(".cell").forEach((cell) => {
+    if (cell.dataset.from === from && cell.dataset.to === to) cell.classList.add("on");
+  });
+  document.querySelectorAll(".link-row").forEach((row) => {
+    if (row.dataset.from === from && row.dataset.to === to) row.classList.add("on");
+  });
+}
+
+function rowsForTab() {
+  const idx = indexReport(state.report);
+  const rows = [...idx.edges.values()].map((edge) => ({ edge, ...classify(edge.from, edge.to, idx) }));
+  if (state.tab === "mutual") return rows.filter((row) => row.kind === "mutual");
+  if (state.tab === "oneway") return rows.filter((row) => row.kind === "oneway" || row.kind === "unknown");
+  return rows;
+}
+
+function renderList() {
+  const list = document.querySelector("#list");
+  const rows = rowsForTab().sort((a, b) => a.edge.from.localeCompare(b.edge.from) || a.edge.to.localeCompare(b.edge.to));
+  list.replaceChildren();
+  if (!rows.length) {
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.style.padding = "16px";
+    p.textContent = state.tab === "oneway" ? "没有单向链接。" : "这一栏是空的。";
+    list.appendChild(p);
+    return;
+  }
+  rows.forEach((row) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "link-row";
+    button.dataset.from = row.edge.from;
+    button.dataset.to = row.edge.to;
+    const line = document.createElement("div");
+    line.className = "line";
+    const hosts = document.createElement("span");
+    hosts.className = "hosts";
+    const kind = document.createElement("span");
+    kind.className = "kind " + row.kind;
+    kind.textContent = row.kind === "mutual" ? "互链" : row.kind === "unknown" ? "对方打不开" : "单向";
+    hosts.append(kind, document.createTextNode(row.edge.from + " → " + row.edge.to));
+    const pages = document.createElement("span");
+    pages.className = "pages";
+    pages.textContent = row.edge.pages + " 页";
+    line.append(hosts, pages);
+    button.appendChild(line);
+    const anchor = row.edge.examples[0] && row.edge.examples[0].anchor;
+    const flags = [];
+    if (row.edge.dofollow === 0) flags.push("nofollow");
+    if (row.edge.sponsored) flags.push("sponsored");
+    if (anchor || flags.length) {
+      const sub = document.createElement("div");
+      sub.className = "subline";
+      sub.textContent = [anchor ? "「" + anchor + "」" : "", flags.join(" ")].filter(Boolean).join(" · ");
+      button.appendChild(sub);
+    }
+    button.addEventListener("click", () => selectPair(row.edge.from, row.edge.to));
+    list.appendChild(button);
+  });
+}
+
+function showDetail(from, to) {
+  const detail = document.querySelector("#detail");
+  const idx = indexReport(state.report);
+  const info = classify(from, to, idx);
+  detail.replaceChildren();
+  const kicker = document.createElement("span");
+  kicker.className = "kicker " + info.kind;
+  kicker.textContent = kindLabel(info.kind);
+  const title = document.createElement("h2");
+  title.textContent = from + " → " + to;
+  const summary = document.createElement("p");
+  summary.textContent = describe(info, from, to, idx);
+  detail.append(kicker, title, summary);
+  appendEdge(detail, "这一格", info.edge);
+  if (info.back) appendEdge(detail, "反向", info.back);
+  const site = idx.sites.get(from);
+  if (site) {
+    const note = document.createElement("p");
+    note.className = "note";
+    note.textContent = from + " 抓了 " + site.pages_fetched + " 个页面" + (site.note ? " · " + site.note : "");
+    detail.appendChild(note);
+  }
+}
+
+function kindLabel(kind) {
+  if (kind === "mutual") return "互链";
+  if (kind === "oneway") return "单向";
+  if (kind === "unknown") return "对方打不开";
+  if (kind === "unchecked") return "出链未知";
+  if (kind === "self") return "同一个站";
+  return "没有链接";
+}
+
+function describe(info, from, to, idx) {
+  const fromSite = idx.sites.get(from);
+  const toSite = idx.sites.get(to);
+  if (info.kind === "unchecked") return from + " 打不开（" + ((fromSite && fromSite.error) || "未知错误") + "），不能判断它有没有链出去。";
+  if (info.kind === "none" && info.back) return from + " 没有链向 " + to + "，但 " + to + " 链了过来。";
+  if (info.kind === "none") return from + " 抓到的页面里，没有指向 " + to + " 的链接。";
+  if (info.kind === "unknown") return from + " 有指向 " + to + " 的链接。" + to + " 打不开（" + ((toSite && toSite.error) || "未知错误") + "），回链无法确认。";
+  if (info.kind === "mutual") return "两边都有链接。";
+  return from + " 链了 " + to + "，" + to + " 抓到的页面里没有链回来。";
+}
+
+function appendEdge(container, label, edge) {
+  const h = document.createElement("h3");
+  h.textContent = edge ? label : label + "：没有";
+  container.appendChild(h);
+  if (!edge) return;
+  const meta = document.createElement("p");
+  meta.className = "note";
+  const bits = [edge.pages + " 个页面", edge.links + " 个链接", "dofollow " + edge.dofollow, "nofollow " + edge.nofollow];
+  if (edge.sponsored) bits.push("sponsored " + edge.sponsored);
+  meta.textContent = bits.join(" · ");
+  container.appendChild(meta);
+  edge.examples.forEach((example) => {
+    const block = document.createElement("div");
+    block.className = "example";
+    const anchor = document.createElement("div");
+    anchor.textContent = example.anchor || "（无锚文本）";
+    if (example.nofollow || example.sponsored) {
+      const flags = document.createElement("span");
+      flags.className = "flags";
+      flags.textContent = [example.nofollow ? "nofollow" : "", example.sponsored ? "sponsored" : ""].filter(Boolean).join(" ");
+      anchor.appendChild(flags);
+    }
+    block.appendChild(anchor);
+    block.appendChild(linkLine("来源", example.source_url));
+    block.appendChild(linkLine("目标", example.target_url));
+    container.appendChild(block);
+  });
+}
+
+function linkLine(label, href) {
+  const wrap = document.createElement("div");
+  wrap.className = "url";
+  const a = document.createElement("a");
+  a.href = href;
+  a.target = "_blank";
+  a.rel = "noreferrer";
+  a.textContent = label + "  " + href;
+  wrap.appendChild(a);
+  return wrap;
+}
+
+function gapLines() {
+  if (!state.report) return "";
+  const idx = indexReport(state.report);
+  const lines = ["单向友链（对方能打开，但没有回链）"];
+  oneWayEdges(idx)
+    .sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to))
+    .forEach((edge) => {
+      const anchor = edge.examples[0] && edge.examples[0].anchor;
+      const flags = edge.dofollow ? "" : " [nofollow]";
+      lines.push(edge.from + " → " + edge.to + (anchor ? " 「" + anchor + "」" : "") + flags);
+    });
+  const down = state.report.sites.filter((site) => !site.ok);
+  if (down.length) {
+    lines.push("", "打不开");
+    down.forEach((site) => lines.push(site.host + "  " + (site.error || "")));
+  }
+  return lines.join("\n");
+}
+
+async function copyGaps() {
+  const text = gapLines();
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    copyBtn.textContent = "已复制";
+    setTimeout(() => { copyBtn.textContent = "复制单向清单"; }, 1200);
+  } catch (error) {
+    copyBtn.textContent = "复制失败";
+    setTimeout(() => { copyBtn.textContent = "复制单向清单"; }, 1200);
+  }
+}
+
+async function loadReport() {
+  const response = await fetch("/api/report");
+  if (!response.ok) {
+    state.report = null;
+    render();
+    return;
+  }
+  state.report = await response.json();
+  render();
+}
+
+function renderProgress(status) {
+  const box = document.querySelector("#progress");
+  box.hidden = false;
+  box.replaceChildren();
+  const h = document.createElement("h2");
+  h.textContent = status.running ? "正在检查名单里的站…" : (status.error ? "检查失败" : "检查结束");
+  box.appendChild(h);
+  if (status.error) {
+    const p = document.createElement("p");
+    p.textContent = status.error;
+    box.appendChild(p);
+  }
+  const pills = document.createElement("div");
+  pills.className = "site-pills";
+  Object.entries(status.sites || {}).forEach(([host, value]) => {
+    const span = document.createElement("span");
+    const running = value === "抓取中" || value === "排队";
+    span.className = "pill" + (running ? " run" : value === "打不开" ? " bad" : value === "完成" ? " ok" : "");
+    span.textContent = host + " " + value;
+    pills.appendChild(span);
+  });
+  box.appendChild(pills);
+}
+
+async function startScan() {
+  scanBtn.disabled = true;
+  const response = await fetch("/api/scan", { method: "POST" });
+  if (!response.ok && response.status !== 202) {
+    scanBtn.disabled = false;
+    const payload = await response.json().catch(() => ({}));
+    alert(payload.error || "无法开始检查");
+    return;
+  }
+  poll();
+}
+
+async function poll() {
+  const response = await fetch("/api/status");
+  const status = await response.json();
+  renderProgress(status);
+  if (status.running) {
+    setTimeout(poll, 1000);
+    return;
+  }
+  scanBtn.disabled = false;
+  await loadReport();
+}
+
+loadReport();
+</script>
+</body>
+</html>

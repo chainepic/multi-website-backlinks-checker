@@ -1,0 +1,30 @@
+{
+  "max_pages_per_site": 18,
+  "groups": [
+    {
+      "id": "shop",
+      "label": "商店",
+      "sites": [
+        { "host": "alpha.example" },
+        { "host": "beta.example" },
+        { "host": "gamma.example" }
+      ]
+    },
+    {
+      "id": "tools",
+      "label": "工具",
+      "sites": [
+        { "host": "delta.example" },
+        { "host": "echo.example" }
+      ]
+    },
+    {
+      "id": "notes",
+      "label": "内容",
+      "sites": [
+        { "host": "foxtrot.example" },
+        { "host": "northwind.example", "note": "可选备注" }
+      ]
+    }
+  ]
+}
