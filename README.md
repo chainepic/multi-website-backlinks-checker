@@ -1,54 +1,54 @@
 <a id="readme-top"></a>
 
 <div align="center">
+  <p><strong>English</strong> · <a href="README.zh-CN.md">中文</a></p>
+
   <img src="docs/logo.png" alt="" width="72" height="72">
 
-  <h1>多网站互链检查器</h1>
+  <h1>Multi-website backlinks checker</h1>
 
-  <p>Multi-website backlinks checker</p>
-
-  <p>一份网站名单，看谁链了谁。只统计名单内部的链接。</p>
+  <p>Links between the sites on your list.</p>
 
   <p>
     <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"></a>
-    <img src="https://img.shields.io/badge/dependencies-none-2ea44f?style=flat-square" alt="没有第三方依赖">
+    <img src="https://img.shields.io/badge/dependencies-none-2ea44f?style=flat-square" alt="No third-party dependencies">
     <a href="https://github.com/chainepic/multi-website-backlinks-checker/stargazers"><img src="https://img.shields.io/github/stars/chainepic/multi-website-backlinks-checker?style=flat-square" alt="Stars"></a>
   </p>
 
-  <p>作者 <a href="https://ro.cafe">Roland · ro.cafe</a></p>
+  <p>Author <a href="https://ro.cafe">Roland · ro.cafe</a></p>
 
   <p>
-    <a href="#界面">界面</a>
+    <a href="#interface">Interface</a>
     ·
-    <a href="#开始">开始</a>
+    <a href="#start">Start</a>
     ·
-    <a href="#名单">名单</a>
+    <a href="#site-list">Site list</a>
     ·
-    <a href="#格子">格子</a>
+    <a href="#cells">Cells</a>
     ·
-    <a href="#抓取范围">抓取范围</a>
+    <a href="#what-gets-fetched">What gets fetched</a>
   </p>
 </div>
 
-## 界面
+## Interface
 
-下面两张图用的都是 `*.example` 域名，只为展示界面。
-
-<p align="center">
-  <img src="docs/preview.png" alt="矩阵和单向清单。域名均为 example。" width="100%">
-</p>
-
-<p align="center">点开一格之后，锚文本和页面在右侧。</p>
+The screenshots use `*.example` domains. They are not real sites.
 
 <p align="center">
-  <img src="docs/detail.png" alt="oak.example 指向 ash.example 的链接证据。域名均为 example。" width="100%">
+  <img src="docs/preview.png" alt="Matrix and one-way list. Every domain is example." width="100%">
 </p>
 
-<p align="right"><a href="#readme-top">回到顶部</a></p>
+<p align="center">Select a cell and the anchor text and page appear on the right.</p>
 
-## 开始
+<p align="center">
+  <img src="docs/detail.png" alt="Link evidence for oak.example to ash.example. Every domain is example." width="100%">
+</p>
 
-需要 Python 3.10 或更新版本。没有第三方依赖。
+<p align="right"><a href="#readme-top">Back to top</a></p>
+
+## Start
+
+Python 3.10 or newer. No third-party dependencies.
 
 ```bash
 git clone https://github.com/chainepic/multi-website-backlinks-checker.git
@@ -57,15 +57,17 @@ cp sites.example.json sites.json
 python3 server.py
 ```
 
-打开 http://127.0.0.1:8787 。点开「名单」，粘贴网址，一行一个，点「加入名单」。删掉某个站，点它旁边的「移除」。改完点「重新检查」，矩阵才会按新名单重算。
+Open http://127.0.0.1:8787 . The page opens in English. The button next to Check again switches it to 中文.
 
-也可以直接改 `sites.json`。
+Open Sites, paste URLs one per line, then choose Add sites. Remove removes one site. Check again rebuilds the matrix from the new list.
 
-<p align="right"><a href="#readme-top">回到顶部</a></p>
+You can also edit `sites.json` directly.
 
-## 名单
+<p align="right"><a href="#readme-top">Back to top</a></p>
 
-`sites.json` 按分组写域名。`host` 不带协议，不带 `www`。
+## Site list
+
+`sites.json` groups hosts. `host` has no scheme and no `www`.
 
 ```json
 {
@@ -73,55 +75,55 @@ python3 server.py
   "groups": [
     {
       "id": "shop",
-      "label": "商店",
+      "label": "Shop",
       "sites": [
         { "host": "alpha.example" },
-        { "host": "beta.example", "note": "可选备注" }
+        { "host": "beta.example", "note": "optional note" }
       ]
     }
   ]
 }
 ```
 
-`max_pages_per_site` 是每个站最多抓多少页。检查结果写在 `data/report.json`。
+`max_pages_per_site` is the page cap for each site. Results are written to `data/report.json`.
 
-`sites.json` 和 `data/report.json` 在 `.gitignore` 里，不会进仓库。
+`sites.json` and `data/report.json` are in `.gitignore`. They are not committed.
 
-<p align="right"><a href="#readme-top">回到顶部</a></p>
+<p align="right"><a href="#readme-top">Back to top</a></p>
 
-## 格子
+## Cells
 
-行是来源，列是目标。
+Rows are the source. Columns are the target.
 
-| 格子 | 含义 |
+| Cell | Meaning |
 | --- | --- |
-| 绿，↔ | 互链。两边都有链接 |
-| 橙，→ | 单向。对方能打开，但没有链回来 |
-| 蓝，! | 对方打不开。这边有链接，回链无法确认 |
-| 斜线，— | 出链未知。来源站打不开 |
-| 空格 | 抓到的页面里没有这条链接 |
-| 底部红线 | 这条边上的链接全是 nofollow |
+| Green, ↔ | Reciprocal. Both sides link |
+| Orange, → | One-way. The target is up and does not link back |
+| Blue, ! | Target is down. This side links, so a return link cannot be confirmed |
+| Hatch, — | Outbound unknown. The source site is down |
+| Empty | No link in the fetched pages |
+| Red bar | Every link on that edge is nofollow |
 
-<p align="right"><a href="#readme-top">回到顶部</a></p>
+<p align="right"><a href="#readme-top">Back to top</a></p>
 
-## 抓取范围
+## What gets fetched
 
-每个站先抓首页，再抓关于、产品、友链、合作这类页面，以及网址路径里出现了其他站名的页面。
+Each site starts at the homepage, then about, product, links, and partner pages, plus URLs whose path mentions another site on the list.
 
-链接只认页面里的 `a` 标签。图片、样式、正文里写出来的域名不算。
+Only `a` tags count. Images, stylesheets, and domains written in the text do not.
 
-不执行 JavaScript。不查名单以外的 backlink。
+JavaScript is not executed. Backlinks outside the list are not checked.
 
-## 测试
+## Tests
 
 ```bash
 python3 -m unittest
 ```
 
-测试不访问网络。
+The tests do not use the network.
 
-## 作者
+## Author
 
 [Roland](https://ro.cafe)
 
-<p align="right"><a href="#readme-top">回到顶部</a></p>
+<p align="right"><a href="#readme-top">Back to top</a></p>

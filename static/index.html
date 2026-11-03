@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>多网站互链检查器</title>
+<title>Multi-website backlinks checker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -441,7 +441,7 @@
   </div>
   <div class="actions">
     <button id="scan" class="btn" type="button" data-i18n="scan">重新检查</button>
-    <button id="lang" class="btn ghost" type="button" aria-label="English">en</button>
+    <button id="lang" class="btn ghost" type="button" aria-label="中文">中文</button>
     <button id="copy" class="btn ghost" type="button" data-i18n="copy">复制单向清单</button>
   </div>
 </header>
@@ -510,7 +510,7 @@ const state = {
   tab: "oneway",
   selected: null,
   query: "",
-  lang: localStorage.getItem("elc-lang") === "en" ? "en" : "zh",
+  lang: localStorage.getItem("elc-lang") === "zh" ? "zh" : "en",
   progress: null,
 };
 const scanBtn = document.querySelector("#scan");
