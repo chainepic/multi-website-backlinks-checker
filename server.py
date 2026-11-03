@@ -14,7 +14,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 
-from checker import REPORT_PATH, load_config, run_scan, write_report
+from checker import REPORT_PATH, apply_site_edits, load_config, save_config, run_scan, write_report
 
 ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
@@ -55,7 +55,7 @@ def _start_scan() -> bool:
 
     def worker() -> None:
         try:
-            report = run_scan(on_progress=progress)
+            report = run_scan(config, on_progress=progress)
             write_report(report)
             with _lock:
                 _state["error"] = None
@@ -108,8 +108,33 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json(404, {"error": "not found"})
 
+    def _body(self) -> dict:
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0 or length > 100_000:
+            return {}
+        raw = self.rfile.read(length)
+        payload = json.loads(raw.decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("名单格式不对")
+        return payload
+
     def do_POST(self) -> None:
         path = urlparse(self.path).path
+        if path == "/api/sites":
+            try:
+                payload = self._body()
+                add_text = payload.get("add") or ""
+                remove = payload.get("remove") or []
+                if not isinstance(add_text, str) or not isinstance(remove, list):
+                    raise ValueError("名单格式不对")
+                with _lock:
+                    result = apply_site_edits(load_config(), add_text, [str(item) for item in remove])
+                    save_config(result["config"])
+            except (json.JSONDecodeError, ValueError, OSError) as exc:
+                self._json(400, {"error": str(exc) or "无法保存名单"})
+                return
+            self._json(200, result)
+            return
         if path != "/api/scan":
             self._json(404, {"error": "not found"})
             return

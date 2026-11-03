@@ -3,7 +3,7 @@
 
 import unittest
 
-from checker import extract_anchors, match_owned, mentions_other_site, mine_edges, rel_flags
+from checker import apply_site_edits, extract_anchors, match_owned, mentions_other_site, mine_edges, parse_host_list, rel_flags
 
 OWNED = {
     "alpha.example", "beta.example", "gamma.example", "delta.example",
@@ -58,6 +58,29 @@ class CheckerTests(unittest.TestCase):
         self.assertTrue(mentions_other_site("https://harbor.example/products/northwindexample", "harbor.example", owned))
         self.assertFalse(mentions_other_site("https://harbor.example/blog/how-to-name-a-startup", "harbor.example", owned))
         self.assertFalse(mentions_other_site("https://alpha.example/skins/ak-47", "alpha.example", owned))
+
+    def test_parse_host_list_accepts_urls_and_bare_hosts(self):
+        hosts, invalid = parse_host_list("https://www.Alpha.example/about\nbeta.example， https://elm.example:8080/zh\n\n不是网址")
+        self.assertEqual(hosts, ["alpha.example", "beta.example", "elm.example"])
+        self.assertEqual(invalid, ["不是网址"])
+
+    def test_apply_site_edits_adds_and_removes_without_dropping_notes(self):
+        config = {
+            "max_pages_per_site": 12,
+            "groups": [{"id": "shop", "label": "商店", "sites": [{"host": "alpha.example", "note": "保留"}]}],
+        }
+        result = apply_site_edits(config, "https://beta.example/\nalpha.example", ["missing.example"])
+        self.assertEqual(result["added"], ["beta.example"])
+        self.assertEqual(result["skipped"], ["alpha.example"])
+        self.assertEqual(result["removed"], [])
+        saved = result["config"]
+        self.assertEqual(saved["max_pages_per_site"], 12)
+        self.assertEqual(saved["groups"][0]["sites"][0]["note"], "保留")
+        self.assertEqual(saved["groups"][1]["id"], "added")
+        self.assertEqual(saved["groups"][1]["sites"][0]["host"], "beta.example")
+        removed = apply_site_edits(saved, "", ["alpha.example"])
+        self.assertEqual(removed["removed"], ["alpha.example"])
+        self.assertEqual([group["id"] for group in removed["config"]["groups"]], ["added"])
 
 
 if __name__ == "__main__":

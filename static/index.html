@@ -65,7 +65,7 @@
   }
   .btn.ghost { background: #fff; color: var(--ink); }
   .btn:disabled { opacity: 0.45; cursor: progress; }
-  .btn:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .btn:focus-visible, input:focus-visible, a:focus-visible, .roster-head button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   .brand .by { margin: 1px 0 0; font-size: 13px; }
   .brand .by a { color: var(--muted); text-decoration: none; }
   .brand .by a:hover { color: var(--ink); }
@@ -102,11 +102,58 @@
   }
   .alert span { background: transparent; padding: 0; border-radius: 0; }
   .alert span + span::before { content: " · "; color: #9f1239; }
-  .progress, .board, .feed {
+  .roster, .progress, .board, .feed {
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 8px;
   }
+  .roster { margin-bottom: 14px; padding: 12px 16px; }
+  .roster-head { margin: 0; font-size: 16px; font-weight: 600; }
+  .roster-head button {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+  }
+  .roster-meta { display: inline-flex; gap: 8px; align-items: baseline; color: var(--muted); font-size: 13px; font-weight: 400; }
+  .roster.is-open .roster-head { margin-bottom: 10px; }
+  .roster-form { display: flex; gap: 8px; align-items: flex-start; }
+  .roster-form textarea {
+    flex: 1;
+    min-height: 68px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 8px 10px;
+    resize: vertical;
+    background: #fff;
+  }
+  .roster-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .roster-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--card-2);
+    border-radius: 4px;
+    padding: 3px 3px 3px 8px;
+    font-size: 13px;
+  }
+  .roster-chip small { color: var(--muted); }
+  .roster-chip button {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+  .roster-chip button:hover { color: #9f1239; }
+  #roster-msg:empty { display: none; }
   .progress { margin-bottom: 14px; padding: 14px 16px; }
   .progress h2, .feed h2 { margin: 0 0 10px; font-size: 15px; }
   .site-pills { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -368,6 +415,9 @@
     .stats { grid-template-columns: 1fr 1fr; }
     .stat:nth-child(2) { border-right: 0; }
     .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+    .roster-form { display: block; }
+    .roster-form textarea { width: 100%; }
+    .roster-form .btn { margin-top: 8px; }
     .toolbar { display: block; }
     input[type="search"] { width: 100%; margin-top: 8px; }
     .aim b { font-size: 13px; }
@@ -384,63 +434,274 @@
       <rect x="17" y="17" width="14" height="14" rx="2" fill="#f4f5f6" stroke="#d4d4d4"/>
     </svg>
     <div>
-      <h1>多网站互链检查器</h1>
-      <p>Multi-website backlinks checker</p>
+      <h1 data-i18n="title">多网站互链检查器</h1>
+      <p data-i18n="subtitle">Multi-website backlinks checker</p>
       <p class="by"><a href="https://ro.cafe" target="_blank" rel="noreferrer">Roland · ro.cafe</a></p>
     </div>
   </div>
   <div class="actions">
-    <button id="scan" class="btn" type="button">重新检查</button>
-    <button id="copy" class="btn ghost" type="button">复制单向清单</button>
+    <button id="scan" class="btn" type="button" data-i18n="scan">重新检查</button>
+    <button id="lang" class="btn ghost" type="button" aria-label="English">en</button>
+    <button id="copy" class="btn ghost" type="button" data-i18n="copy">复制单向清单</button>
   </div>
 </header>
 <main>
   <section id="stats" class="stats"></section>
+  <section class="roster" id="roster-panel">
+    <h2 class="roster-head">
+      <button type="button" id="roster-toggle" aria-expanded="false" aria-controls="roster-body">
+        <span data-i18n="roster">名单</span>
+        <span class="roster-meta"><span id="roster-count" class="num"></span><span id="roster-state">展开</span></span>
+      </button>
+    </h2>
+    <div id="roster-body" hidden>
+      <form id="roster-form" class="roster-form">
+        <textarea id="roster-input" data-i18n="pastePlaceholder" data-i18n-label="pasteLabel" placeholder="每行一个网址，也可以一次粘贴多行" aria-label="粘贴网址"></textarea>
+        <button class="btn" type="submit" data-i18n="addSites">加入名单</button>
+      </form>
+      <p id="roster-msg" class="note"></p>
+      <div id="roster" class="roster-list"></div>
+    </div>
+  </section>
   <div id="alert" class="alert" hidden></div>
   <section id="progress" class="progress" hidden></section>
   <section class="board">
     <div class="board-main">
       <div class="toolbar">
         <div class="legend">
-          <span class="legend-item"><i class="mark mutual" aria-hidden="true">↔</i>互链</span>
-          <span class="legend-item"><i class="mark oneway" aria-hidden="true">→</i>单向</span>
-          <span class="legend-item"><i class="mark unknown" aria-hidden="true">!</i>对方打不开</span>
-          <span class="legend-item"><i class="mark unchecked" aria-hidden="true">—</i>出链未知</span>
-          <span class="legend-item"><i class="mark none" aria-hidden="true"></i>没有链接</span>
-          <span class="legend-item"><i class="mark sample nofollow" aria-hidden="true">→</i>全是 nofollow</span>
+          <span class="legend-item"><i class="mark mutual" aria-hidden="true">↔</i><span data-i18n="mutual">互链</span></span>
+          <span class="legend-item"><i class="mark oneway" aria-hidden="true">→</i><span data-i18n="oneway">单向</span></span>
+          <span class="legend-item"><i class="mark unknown" aria-hidden="true">!</i><span data-i18n="unknown">对方打不开</span></span>
+          <span class="legend-item"><i class="mark unchecked" aria-hidden="true">—</i><span data-i18n="unchecked">出链未知</span></span>
+          <span class="legend-item"><i class="mark none" aria-hidden="true"></i><span data-i18n="none">没有链接</span></span>
+          <span class="legend-item"><i class="mark sample nofollow" aria-hidden="true">→</i><span data-i18n="nofollowAll">全是 nofollow</span></span>
         </div>
-        <input id="q" type="search" placeholder="高亮域名" aria-label="高亮域名">
+        <input id="q" type="search" data-i18n="search" data-i18n-label="search" placeholder="高亮域名" aria-label="高亮域名">
       </div>
       <div id="aim" class="aim" aria-live="polite">
-        <span class="axis">来源</span>
+        <span class="axis" data-i18n="from">来源</span>
         <b id="aim-from">—</b>
         <span class="arrow" aria-hidden="true">→</span>
-        <span class="axis">目标</span>
+        <span class="axis" data-i18n="to">目标</span>
         <b id="aim-to">—</b>
         <span id="aim-kind" class="aim-kind"></span>
       </div>
       <div id="matrix" class="matrix-scroll"></div>
     </div>
     <aside id="detail" class="detail">
-      <span class="kicker">链接证据</span>
-      <h2>来源 → 目标</h2>
-      <p class="empty">点一格，看锚文本和页面。</p>
+      <span class="kicker" data-i18n="evidence">链接证据</span>
+      <h2 data-i18n="detailTitle">来源 → 目标</h2>
+      <p class="empty" data-i18n="detailEmpty">点一格，看锚文本和页面。</p>
     </aside>
   </section>
   <section class="feed">
     <div class="tabs">
-      <button type="button" class="active" data-tab="oneway">单向</button>
-      <button type="button" data-tab="mutual">互链</button>
-      <button type="button" data-tab="all">全部链接</button>
+      <button type="button" class="active" data-tab="oneway" data-i18n="oneway">单向</button>
+      <button type="button" data-tab="mutual" data-i18n="mutual">互链</button>
+      <button type="button" data-tab="all" data-i18n="allLinks">全部链接</button>
     </div>
     <div id="list"></div>
   </section>
 </main>
 <script>
-const state = { report: null, tab: "oneway", selected: null, query: "" };
+const state = {
+  report: null,
+  config: null,
+  tab: "oneway",
+  selected: null,
+  query: "",
+  lang: localStorage.getItem("elc-lang") === "en" ? "en" : "zh",
+  progress: null,
+};
 const scanBtn = document.querySelector("#scan");
 const copyBtn = document.querySelector("#copy");
+const langBtn = document.querySelector("#lang");
 const q = document.querySelector("#q");
+const COPY = {
+  zh: {
+    title: "多网站互链检查器",
+    subtitle: "Multi-website backlinks checker",
+    scan: "重新检查",
+    copy: "复制单向清单",
+    copied: "已复制",
+    copyFail: "复制失败",
+    roster: "名单",
+    expand: "展开",
+    collapse: "收起",
+    pastePlaceholder: "每行一个网址，也可以一次粘贴多行",
+    pasteLabel: "粘贴网址",
+    addSites: "加入名单",
+    mutual: "互链",
+    oneway: "单向",
+    unknown: "对方打不开",
+    unchecked: "出链未知",
+    none: "没有链接",
+    nofollowAll: "全是 nofollow",
+    self: "同一个站",
+    search: "高亮域名",
+    from: "来源",
+    to: "目标",
+    evidence: "链接证据",
+    detailTitle: "来源 → 目标",
+    detailEmpty: "点一格，看锚文本和页面。",
+    allLinks: "全部链接",
+    emptyMatrix: "还没有结果。点「重新检查」开始。",
+    sitesUp: "站点能打开",
+    mutualPairs: "互链对",
+    bothWays: "两边都有链接",
+    oneWayLinks: "单向链接",
+    noReturn: "对方没有链回来",
+    directed: "有向链接",
+    anchorTags: "页面里的 a 标签",
+    down: "打不开",
+    noOneWay: "没有单向链接。",
+    emptyTab: "这一栏是空的。",
+    thisCell: "这一格",
+    back: "反向",
+    edgeNone: "：没有",
+    noAnchor: "（无锚文本）",
+    gapTitle: "单向友链（对方能打开，但没有回链）",
+    scanning: "正在检查名单里的站…",
+    scanFail: "检查失败",
+    scanDone: "检查结束",
+    cannotStart: "无法开始检查",
+    cannotSave: "无法保存名单",
+    emptyRoster: "名单是空的",
+    remove: "移除",
+    addedGroup: "新加",
+    added: "加入",
+    already: "已在名单",
+    removed: "移除",
+    unrecognized: "无法识别",
+    noChange: "没有变化",
+    rescans: "重新检查后进入矩阵",
+    unknownError: "未知错误",
+    timedOut: "连接超时",
+    badCert: "证书校验失败",
+    checkFailed: "检查失败",
+    fetching: "抓取中",
+    queued: "排队",
+    done: "完成",
+  },
+  en: {
+    title: "Multi-website backlinks checker",
+    subtitle: "Links between the sites on your list",
+    scan: "Check again",
+    copy: "Copy one-way list",
+    copied: "Copied",
+    copyFail: "Copy failed",
+    roster: "Sites",
+    expand: "Show",
+    collapse: "Hide",
+    pastePlaceholder: "One URL per line, or paste several lines",
+    pasteLabel: "Paste URLs",
+    addSites: "Add sites",
+    mutual: "Reciprocal",
+    oneway: "One-way",
+    unknown: "Target down",
+    unchecked: "Outbound unknown",
+    none: "No link",
+    nofollowAll: "All nofollow",
+    self: "Same site",
+    search: "Highlight a domain",
+    from: "From",
+    to: "To",
+    evidence: "Link evidence",
+    detailTitle: "From → To",
+    detailEmpty: "Select a cell to see the anchor text and page.",
+    allLinks: "All links",
+    emptyMatrix: "No results yet. Run a check.",
+    sitesUp: "Sites up",
+    mutualPairs: "Reciprocal pairs",
+    bothWays: "Both sides link",
+    oneWayLinks: "One-way links",
+    noReturn: "No link back",
+    directed: "Directed links",
+    anchorTags: "a tags in the pages",
+    down: "Down",
+    noOneWay: "No one-way links.",
+    emptyTab: "Nothing in this tab.",
+    thisCell: "This cell",
+    back: "Return",
+    edgeNone: ": none",
+    noAnchor: "(no anchor text)",
+    gapTitle: "One-way links (the other site is up, but does not link back)",
+    scanning: "Checking the list…",
+    scanFail: "Check failed",
+    scanDone: "Check finished",
+    cannotStart: "Could not start the check",
+    cannotSave: "Could not save the list",
+    emptyRoster: "No sites yet",
+    remove: "Remove",
+    addedGroup: "Added",
+    added: "Added",
+    already: "Already listed",
+    removed: "Removed",
+    unrecognized: "Unrecognized",
+    noChange: "No change",
+    rescans: "Run a check to update the matrix",
+    unknownError: "unknown error",
+    fetching: "Fetching",
+    queued: "Queued",
+    done: "Done",
+    timedOut: "Timed out",
+    badCert: "Certificate check failed",
+    checkFailed: "Check failed",
+  },
+};
+const ZH_ERRORS = {
+  "连接超时": "timedOut",
+  "证书校验失败": "badCert",
+  "检查失败": "checkFailed",
+  "打不开": "down",
+  "未知错误": "unknownError",
+};
+function showError(error) {
+  if (!error) return t("unknownError");
+  if (state.lang !== "en") return error;
+  if (ZH_ERRORS[error]) return t(ZH_ERRORS[error]);
+  if (error.startsWith("检查失败")) return t("checkFailed");
+  const http = error.match(/^HTTP (\d+)(?: · (.*))?$/);
+  if (http) return "HTTP " + http[1];
+  if (/[\u3400-\u9fff]/.test(error)) return t("down");
+  return error;
+}
+function showApiError(error, fallback) {
+  const known = {
+    "还没有检查结果": state.lang === "en" ? "No results yet" : "还没有检查结果",
+    "名单格式不对": state.lang === "en" ? "The list format is wrong" : "名单格式不对",
+    "无法保存名单": t("cannotSave"),
+    "正在检查": state.lang === "en" ? "A check is already running" : "正在检查",
+  };
+  if (!error) return t(fallback);
+  if (known[error]) return known[error];
+  if (state.lang === "en" && /[\u3400-\u9fff]/.test(error)) return t(fallback);
+  return error;
+}
+function t(key) {
+  return COPY[state.lang][key];
+}
+function applyLang() {
+  document.documentElement.lang = state.lang === "en" ? "en" : "zh-CN";
+  document.title = t("title");
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const value = t(el.dataset.i18n);
+    if (el.matches("input, textarea")) el.placeholder = value;
+    else el.textContent = value;
+    if (el.dataset.i18nLabel) el.setAttribute("aria-label", t(el.dataset.i18nLabel));
+  });
+  langBtn.textContent = state.lang === "en" ? "中文" : "en";
+  langBtn.setAttribute("aria-label", state.lang === "en" ? "中文" : "English");
+  if (rosterBody) setRosterOpen(!rosterBody.hidden);
+  if (state.config) renderRoster();
+  render();
+  if (state.progress && !document.querySelector("#progress").hidden) renderProgress(state.progress);
+}
+langBtn.addEventListener("click", () => {
+  state.lang = state.lang === "en" ? "zh" : "en";
+  localStorage.setItem("elc-lang", state.lang);
+  applyLang();
+});
 
 q.addEventListener("input", () => {
   state.query = q.value.trim().toLowerCase();
@@ -525,7 +786,7 @@ function render() {
     const empty = document.createElement("p");
     empty.className = "empty";
     empty.style.padding = "28px";
-    empty.textContent = "还没有结果。点「重新检查」开始。";
+    empty.textContent = t("emptyMatrix");
     matrix.appendChild(empty);
     list.replaceChildren();
     return;
@@ -541,12 +802,16 @@ function render() {
 function renderStats() {
   const idx = indexReport(state.report);
   const down = state.report.sites.filter((site) => !site.ok).length;
-  const when = new Date(state.report.generated_at).toLocaleString("zh-CN", { hour12: false });
+  const when = new Date(state.report.generated_at).toLocaleString(state.lang === "en" ? "en-GB" : "zh-CN", { hour12: false });
+  const seconds = state.lang === "en" ? state.report.duration_sec + " s" : state.report.duration_sec + " 秒";
+  const downNote = state.lang === "en"
+    ? down + (down === 1 ? " site down" : " sites down")
+    : down + " 个站打不开";
   const cards = [
-    ["up", state.report.sites.length - down + "/" + state.report.sites.length, "站点能打开", when + " · " + state.report.duration_sec + " 秒"],
-    ["mutual", String(mutualPairs(idx)), "互链对", "两边都有链接"],
-    ["one", String(oneWayEdges(idx).length), "单向链接", "对方没有链回来"],
-    ["down", String(state.report.edges.length), "有向链接", down ? down + " 个站打不开" : "页面里的 a 标签"],
+    ["up", state.report.sites.length - down + "/" + state.report.sites.length, t("sitesUp"), when + " · " + seconds],
+    ["mutual", String(mutualPairs(idx)), t("mutualPairs"), t("bothWays")],
+    ["one", String(oneWayEdges(idx).length), t("oneWayLinks"), t("noReturn")],
+    ["down", String(state.report.edges.length), t("directed"), down ? downNote : t("anchorTags")],
   ];
   const root = document.querySelector("#stats");
   root.replaceChildren();
@@ -576,7 +841,7 @@ function renderAlert() {
   box.hidden = false;
   down.forEach((site) => {
     const span = document.createElement("span");
-    span.textContent = site.host + " · " + (site.error || "打不开");
+    span.textContent = site.host + " · " + showError(site.error);
     box.appendChild(span);
   });
 }
@@ -591,7 +856,7 @@ function renderMatrix() {
   const groupRow = document.createElement("tr");
   const groupCorner = document.createElement("th");
   groupCorner.className = "sticky corner ghead";
-  groupCorner.textContent = "目标";
+  groupCorner.textContent = t("to");
   groupRow.appendChild(groupCorner);
   let index = 0;
   report.groups.forEach((group) => {
@@ -606,7 +871,7 @@ function renderMatrix() {
   const head = document.createElement("tr");
   const corner = document.createElement("th");
   corner.className = "sticky corner colhead";
-  corner.textContent = "来源";
+  corner.textContent = t("from");
   head.appendChild(corner);
   idx.order.forEach((host, col) => {
     const th = document.createElement("th");
@@ -634,7 +899,9 @@ function renderMatrix() {
     name.textContent = from;
     const meta = document.createElement("span");
     meta.className = "meta";
-    meta.textContent = site && site.ok ? count.out + " 出 · " + count.inn + " 入" : ((site && site.error) || "打不开");
+    meta.textContent = site && site.ok
+      ? (state.lang === "en" ? count.out + " out · " + count.inn + " in" : count.out + " 出 · " + count.inn + " 入")
+      : showError(site && site.error);
     const inner = document.createElement("div");
     inner.className = "inner";
     inner.append(name, meta);
@@ -657,7 +924,7 @@ function renderMatrix() {
       button.type = "button";
       button.textContent = mark(info);
       button.disabled = info.kind === "self";
-      button.setAttribute("aria-label", from + " → " + to + "，" + kindLabel(info.kind));
+      button.setAttribute("aria-label", from + " → " + to + (state.lang === "en" ? ", " : "，") + kindLabel(info.kind));
       button.addEventListener("mouseenter", () => highlight(table, tr, col + 1));
       button.addEventListener("click", () => selectPair(from, to));
       td.appendChild(button);
@@ -756,7 +1023,7 @@ function renderList() {
     const p = document.createElement("p");
     p.className = "empty";
     p.style.padding = "16px";
-    p.textContent = state.tab === "oneway" ? "没有单向链接。" : "这一栏是空的。";
+    p.textContent = state.tab === "oneway" ? t("noOneWay") : t("emptyTab");
     list.appendChild(p);
     return;
   }
@@ -772,11 +1039,13 @@ function renderList() {
     hosts.className = "hosts";
     const kind = document.createElement("span");
     kind.className = "kind " + row.kind;
-    kind.textContent = row.kind === "mutual" ? "互链" : row.kind === "unknown" ? "对方打不开" : "单向";
+    kind.textContent = kindLabel(row.kind);
     hosts.append(kind, document.createTextNode(row.edge.from + " → " + row.edge.to));
     const pages = document.createElement("span");
     pages.className = "pages";
-    pages.textContent = row.edge.pages + " 页";
+    pages.textContent = state.lang === "en"
+      ? row.edge.pages + (row.edge.pages === 1 ? " page" : " pages")
+      : row.edge.pages + " 页";
     line.append(hosts, pages);
     button.appendChild(line);
     const anchor = row.edge.examples[0] && row.edge.examples[0].anchor;
@@ -807,45 +1076,59 @@ function showDetail(from, to) {
   const summary = document.createElement("p");
   summary.textContent = describe(info, from, to, idx);
   detail.append(kicker, title, summary);
-  appendEdge(detail, "这一格", info.edge);
-  if (info.back) appendEdge(detail, "反向", info.back);
+  appendEdge(detail, t("thisCell"), info.edge);
+  if (info.back) appendEdge(detail, t("back"), info.back);
   const site = idx.sites.get(from);
   if (site) {
     const note = document.createElement("p");
     note.className = "note";
-    note.textContent = from + " 抓了 " + site.pages_fetched + " 个页面" + (site.note ? " · " + site.note : "");
+    note.textContent = state.lang === "en"
+      ? from + " fetched " + site.pages_fetched + (site.pages_fetched === 1 ? " page" : " pages") + (site.note ? " · " + site.note : "")
+      : from + " 抓了 " + site.pages_fetched + " 个页面" + (site.note ? " · " + site.note : "");
     detail.appendChild(note);
   }
 }
 
 function kindLabel(kind) {
-  if (kind === "mutual") return "互链";
-  if (kind === "oneway") return "单向";
-  if (kind === "unknown") return "对方打不开";
-  if (kind === "unchecked") return "出链未知";
-  if (kind === "self") return "同一个站";
-  return "没有链接";
+  if (kind === "mutual") return t("mutual");
+  if (kind === "oneway") return t("oneway");
+  if (kind === "unknown") return t("unknown");
+  if (kind === "unchecked") return t("unchecked");
+  if (kind === "self") return t("self");
+  return t("none");
 }
 
 function describe(info, from, to, idx) {
   const fromSite = idx.sites.get(from);
   const toSite = idx.sites.get(to);
-  if (info.kind === "unchecked") return from + " 打不开（" + ((fromSite && fromSite.error) || "未知错误") + "），不能判断它有没有链出去。";
+  const fromError = showError(fromSite && fromSite.error);
+  const toError = showError(toSite && toSite.error);
+  if (state.lang === "en") {
+    if (info.kind === "unchecked") return from + " is down (" + fromError + "), so its outbound links cannot be checked.";
+    if (info.kind === "none" && info.back) return from + " does not link to " + to + ", but " + to + " links here.";
+    if (info.kind === "none") return "The pages fetched from " + from + " have no link to " + to + ".";
+    if (info.kind === "unknown") return from + " links to " + to + ". " + to + " is down (" + toError + "), so a return link cannot be confirmed.";
+    if (info.kind === "mutual") return "Both sides link.";
+    return from + " links to " + to + ", and the pages fetched from " + to + " do not link back.";
+  }
+  if (info.kind === "unchecked") return from + " 打不开（" + fromError + "），不能判断它有没有链出去。";
   if (info.kind === "none" && info.back) return from + " 没有链向 " + to + "，但 " + to + " 链了过来。";
   if (info.kind === "none") return from + " 抓到的页面里，没有指向 " + to + " 的链接。";
-  if (info.kind === "unknown") return from + " 有指向 " + to + " 的链接。" + to + " 打不开（" + ((toSite && toSite.error) || "未知错误") + "），回链无法确认。";
+  if (info.kind === "unknown") return from + " 有指向 " + to + " 的链接。" + to + " 打不开（" + toError + "），回链无法确认。";
   if (info.kind === "mutual") return "两边都有链接。";
   return from + " 链了 " + to + "，" + to + " 抓到的页面里没有链回来。";
 }
 
 function appendEdge(container, label, edge) {
   const h = document.createElement("h3");
-  h.textContent = edge ? label : label + "：没有";
+  h.textContent = edge ? label : label + t("edgeNone");
   container.appendChild(h);
   if (!edge) return;
   const meta = document.createElement("p");
   meta.className = "note";
-  const bits = [edge.pages + " 个页面", edge.links + " 个链接", "dofollow " + edge.dofollow, "nofollow " + edge.nofollow];
+  const bits = state.lang === "en"
+    ? [edge.pages + (edge.pages === 1 ? " page" : " pages"), edge.links + (edge.links === 1 ? " link" : " links"), "dofollow " + edge.dofollow, "nofollow " + edge.nofollow]
+    : [edge.pages + " 个页面", edge.links + " 个链接", "dofollow " + edge.dofollow, "nofollow " + edge.nofollow];
   if (edge.sponsored) bits.push("sponsored " + edge.sponsored);
   meta.textContent = bits.join(" · ");
   container.appendChild(meta);
@@ -853,7 +1136,7 @@ function appendEdge(container, label, edge) {
     const block = document.createElement("div");
     block.className = "example";
     const anchor = document.createElement("div");
-    anchor.textContent = example.anchor || "（无锚文本）";
+    anchor.textContent = example.anchor || t("noAnchor");
     if (example.nofollow || example.sponsored) {
       const flags = document.createElement("span");
       flags.className = "flags";
@@ -861,8 +1144,8 @@ function appendEdge(container, label, edge) {
       anchor.appendChild(flags);
     }
     block.appendChild(anchor);
-    block.appendChild(linkLine("来源", example.source_url));
-    block.appendChild(linkLine("目标", example.target_url));
+    block.appendChild(linkLine(t("from"), example.source_url));
+    block.appendChild(linkLine(t("to"), example.target_url));
     container.appendChild(block);
   });
 }
@@ -882,7 +1165,7 @@ function linkLine(label, href) {
 function gapLines() {
   if (!state.report) return "";
   const idx = indexReport(state.report);
-  const lines = ["单向友链（对方能打开，但没有回链）"];
+  const lines = [t("gapTitle")];
   oneWayEdges(idx)
     .sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to))
     .forEach((edge) => {
@@ -892,8 +1175,8 @@ function gapLines() {
     });
   const down = state.report.sites.filter((site) => !site.ok);
   if (down.length) {
-    lines.push("", "打不开");
-    down.forEach((site) => lines.push(site.host + "  " + (site.error || "")));
+    lines.push("", t("down"));
+    down.forEach((site) => lines.push(site.host + "  " + showError(site.error)));
   }
   return lines.join("\n");
 }
@@ -903,11 +1186,11 @@ async function copyGaps() {
   if (!text) return;
   try {
     await navigator.clipboard.writeText(text);
-    copyBtn.textContent = "已复制";
-    setTimeout(() => { copyBtn.textContent = "复制单向清单"; }, 1200);
+    copyBtn.textContent = t("copied");
+    setTimeout(() => { copyBtn.textContent = t("copy"); }, 1200);
   } catch (error) {
-    copyBtn.textContent = "复制失败";
-    setTimeout(() => { copyBtn.textContent = "复制单向清单"; }, 1200);
+    copyBtn.textContent = t("copyFail");
+    setTimeout(() => { copyBtn.textContent = t("copy"); }, 1200);
   }
 }
 
@@ -927,7 +1210,8 @@ function renderProgress(status) {
   box.hidden = false;
   box.replaceChildren();
   const h = document.createElement("h2");
-  h.textContent = status.running ? "正在检查名单里的站…" : (status.error ? "检查失败" : "检查结束");
+  state.progress = status;
+  h.textContent = status.running ? t("scanning") : (status.error ? t("scanFail") : t("scanDone"));
   box.appendChild(h);
   if (status.error) {
     const p = document.createElement("p");
@@ -940,7 +1224,8 @@ function renderProgress(status) {
     const span = document.createElement("span");
     const running = value === "抓取中" || value === "排队";
     span.className = "pill" + (running ? " run" : value === "打不开" ? " bad" : value === "完成" ? " ok" : "");
-    span.textContent = host + " " + value;
+    const label = value === "抓取中" ? t("fetching") : value === "排队" ? t("queued") : value === "打不开" ? t("down") : value === "完成" ? t("done") : value;
+    span.textContent = host + " " + label;
     pills.appendChild(span);
   });
   box.appendChild(pills);
@@ -952,7 +1237,7 @@ async function startScan() {
   if (!response.ok && response.status !== 202) {
     scanBtn.disabled = false;
     const payload = await response.json().catch(() => ({}));
-    alert(payload.error || "无法开始检查");
+    alert(showApiError(payload.error, "cannotStart"));
     return;
   }
   poll();
@@ -970,6 +1255,102 @@ async function poll() {
   await loadReport();
 }
 
+const rosterPanel = document.querySelector("#roster-panel");
+const rosterToggle = document.querySelector("#roster-toggle");
+const rosterBody = document.querySelector("#roster-body");
+
+function setRosterOpen(open) {
+  rosterPanel.classList.toggle("is-open", open);
+  rosterToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  rosterBody.hidden = !open;
+  document.querySelector("#roster-state").textContent = open ? t("collapse") : t("expand");
+}
+
+rosterToggle.addEventListener("click", () => setRosterOpen(rosterBody.hidden));
+
+document.querySelector("#roster-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const input = document.querySelector("#roster-input");
+  saveRoster(input.value, []).then((ok) => {
+    if (ok) input.value = "";
+  });
+});
+
+function rosterHosts(config) {
+  const hosts = [];
+  (config && config.groups || []).forEach((group) => {
+    (group.sites || []).forEach((site) => hosts.push({ host: site.host, group: group.label, groupId: group.id }));
+  });
+  return hosts;
+}
+
+function renderRoster() {
+  const list = document.querySelector("#roster");
+  const hosts = rosterHosts(state.config);
+  document.querySelector("#roster-count").textContent = state.lang === "en" ? hosts.length + " sites" : hosts.length + " 个站";
+  list.replaceChildren();
+  if (!hosts.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = t("emptyRoster");
+    list.appendChild(empty);
+    return;
+  }
+  hosts.forEach((item) => {
+    const chip = document.createElement("span");
+    chip.className = "roster-chip";
+    const name = document.createElement("span");
+    name.textContent = item.host;
+    const group = document.createElement("small");
+    group.textContent = item.groupId === "added" ? t("addedGroup") : item.group;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = t("remove");
+    button.setAttribute("aria-label", t("remove") + " " + item.host);
+    button.addEventListener("click", () => saveRoster("", [item.host]));
+    chip.append(name, group, button);
+    list.appendChild(chip);
+  });
+}
+
+function rosterMessage(result) {
+  const bits = [];
+  if (result.added && result.added.length) bits.push(t("added") + " " + result.added.length);
+  if (result.skipped && result.skipped.length) bits.push(t("already") + " " + result.skipped.length);
+  if (result.removed && result.removed.length) bits.push(t("removed") + " " + result.removed.length);
+  if (result.invalid && result.invalid.length) bits.push(t("unrecognized") + " " + result.invalid.join(state.lang === "en" ? ", " : "、"));
+  if (!bits.length) return t("noChange");
+  if (result.added && result.added.length) bits.push(t("rescans"));
+  return bits.join(" · ");
+}
+
+async function saveRoster(addText, remove) {
+  const message = document.querySelector("#roster-msg");
+  const response = await fetch("/api/sites", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ add: addText, remove: remove }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    message.textContent = showApiError(payload.error, "cannotSave");
+    return false;
+  }
+  state.config = payload.config;
+  renderRoster();
+  message.textContent = rosterMessage(payload);
+  return true;
+}
+
+async function loadRoster() {
+  const response = await fetch("/api/config");
+  if (!response.ok) return;
+  state.config = await response.json();
+  renderRoster();
+}
+
+applyLang();
+loadRoster();
 loadReport();
 </script>
 </body>

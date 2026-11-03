@@ -57,7 +57,9 @@ cp sites.example.json sites.json
 python3 server.py
 ```
 
-打开 http://127.0.0.1:8787 ，点「重新检查」。
+打开 http://127.0.0.1:8787 。点开「名单」，粘贴网址，一行一个，点「加入名单」。删掉某个站，点它旁边的「移除」。改完点「重新检查」，矩阵才会按新名单重算。
+
+也可以直接改 `sites.json`。
 
 <p align="right"><a href="#readme-top">回到顶部</a></p>
 

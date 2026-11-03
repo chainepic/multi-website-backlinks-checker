@@ -90,6 +90,79 @@ def load_config(path: Path = SITES_PATH) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def save_config(config: dict, path: Path = SITES_PATH) -> None:
+    path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def host_from_token(token: str) -> str | None:
+    raw = (token or "").strip().strip("<>\"'")
+    if not raw or any(ch.isspace() for ch in raw):
+        return None
+    candidate = raw if "://" in raw else "https://" + raw
+    host = canonical_host(urlparse(candidate).hostname or "")
+    if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+", host or ""):
+        return None
+    return host
+
+
+def parse_host_list(text: str) -> tuple[list[str], list[str]]:
+    hosts: list[str] = []
+    invalid: list[str] = []
+    seen: set[str] = set()
+    for token in re.split(r"[\s,，;；]+", text or ""):
+        if not token.strip():
+            continue
+        host = host_from_token(token)
+        if not host:
+            invalid.append(token.strip())
+            continue
+        if host in seen:
+            continue
+        seen.add(host)
+        hosts.append(host)
+    return hosts, invalid
+
+
+def apply_site_edits(config: dict, add_text: str = "", remove: list[str] | None = None) -> dict:
+    incoming, invalid = parse_host_list(add_text)
+    remove_set: set[str] = set()
+    for item in remove or []:
+        host = host_from_token(str(item))
+        if host:
+            remove_set.add(host)
+    existing = {
+        canonical_host(site["host"])
+        for group in config.get("groups") or []
+        for site in group.get("sites") or []
+    }
+    added = [host for host in incoming if host not in existing]
+    skipped = [host for host in incoming if host in existing]
+    removed: list[str] = []
+    groups = []
+    for group in config.get("groups") or []:
+        sites = []
+        for site in group.get("sites") or []:
+            host = canonical_host(site["host"])
+            if host in remove_set:
+                removed.append(host)
+                continue
+            sites.append(site)
+        if sites:
+            groups.append({**group, "sites": sites})
+    if added:
+        target = next((group for group in groups if group["id"] == "added"), None)
+        if target is None:
+            target = {"id": "added", "label": "新加", "sites": []}
+            groups.append(target)
+        for host in added:
+            target["sites"].append({"host": host})
+    saved = {
+        "max_pages_per_site": config.get("max_pages_per_site", 18),
+        "groups": groups,
+    }
+    return {"config": saved, "added": added, "skipped": skipped, "invalid": invalid, "removed": removed}
+
+
 def flatten_sites(config: dict) -> list[dict]:
     sites = []
     for group in config["groups"]:
